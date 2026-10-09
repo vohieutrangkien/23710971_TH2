@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Vibration } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Product } from '@services/productApi';
 import { COLORS } from '@constants/theme';
-import { VARIANT } from '@constants/student';
+import { triggerAddToCartHaptic } from '@constants/student';
 
 interface ProductCardProps {
   product: Product;
@@ -12,13 +12,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, onAddToCart }) => {
   const handleAddPress = () => {
-    // Haptic theo VARIANT.hapticOnAdd
-    if (VARIANT.hapticOnAdd === 'impact') {
-      Vibration.vibrate(60);
-    } else {
-      // selection
-      Vibration.vibrate(25);
-    }
+    triggerAddToCartHaptic();
     onAddToCart();
   };
 

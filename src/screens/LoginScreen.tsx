@@ -54,7 +54,7 @@ export const LoginScreen: React.FC = () => {
               placeholder={
                 VARIANT.authField === 'email'
                   ? `${STUDENT.mssv}@sv.iuh.edu.vn`
-                  : `0904040729 (${STUDENT.mssv})`
+                  : `0328140841 (23710971)`
               }
               placeholderTextColor={COLORS.textLight}
               value={inputValue}

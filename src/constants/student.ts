@@ -30,6 +30,29 @@ export const VARIANT = {
   detailPresentation: LAST_DIGIT >= 5 ? 'modal' : 'card',
 } as const;
 
+import { Vibration, Platform, PermissionsAndroid } from 'react-native';
+
+export async function triggerAddToCartHaptic(): Promise<void> {
+  try {
+    if (Platform.OS === 'android') {
+      const hasPerm = await PermissionsAndroid.check(
+        'android.permission.VIBRATE' as any
+      ).catch(() => false);
+      if (!hasPerm) {
+        return;
+      }
+    }
+
+    if (VARIANT.hapticOnAdd === 'impact') {
+      Vibration.vibrate(60);
+    } else {
+      Vibration.vibrate(25);
+    }
+  } catch {
+    // Graceful fallback
+  }
+}
+
 export function examStamp(): string {
   const raw = `TH2|${STUDENT.mssv}|${STUDENT.hoTen}`;
   let h = 5381;

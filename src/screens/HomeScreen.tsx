@@ -32,26 +32,46 @@ type NavigationProp = NativeStackNavigationProp<ShopStackParamList, 'Home'>;
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [searchText, setSearchText] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const debouncedSearch = useDebouncedValue(searchText, DEBOUNCE_MS);
 
   const { data: products, isPending, isError, refetch, isRefetching } = useProductsQuery();
   const addItem = useCartStore(state => state.addItem);
 
+  const categories = [
+    { key: 'all', label: 'Tất cả', icon: '🍱' },
+    { key: "men's clothing", label: 'Đồ nam', icon: '👕' },
+    { key: "women's clothing", label: 'Đồ nữ', icon: '👗' },
+    { key: 'jewelery', label: 'Trang sức', icon: '💍' },
+    { key: 'electronics', label: 'Điện tử', icon: '💻' },
+  ];
+
   const filteredProducts = useMemo(() => {
     if (!products) return [];
-    if (!debouncedSearch.trim()) return products;
-    return products.filter(p =>
-      p.title.toLowerCase().includes(debouncedSearch.toLowerCase())
-    );
-  }, [products, debouncedSearch]);
+    let list = products;
+    if (selectedCategory !== 'all') {
+      list = list.filter(p => p.category === selectedCategory);
+    }
+    if (debouncedSearch.trim()) {
+      list = list.filter(p =>
+        p.title.toLowerCase().includes(debouncedSearch.toLowerCase())
+      );
+    }
+    return list;
+  }, [products, selectedCategory, debouncedSearch]);
 
   const isWatermarkTop = VARIANT.watermarkAtTop;
 
   const renderHeader = () => (
     <View>
       <View style={styles.topHeader}>
-        <Text style={styles.logoTitle}>KTXGO</Text>
-        <Text style={styles.roomLabel}>Giao tận {ROOM_LABEL}</Text>
+        <View>
+          <Text style={styles.logoTitle}>KTXGO 🛵</Text>
+          <Text style={styles.subSubtitle}>Sinh viên: {STUDENT.hoTen}</Text>
+        </View>
+        <View style={styles.roomBadge}>
+          <Text style={styles.roomLabel}>📍 Giao tận {ROOM_LABEL}</Text>
+        </View>
       </View>
 
       <Image
@@ -61,6 +81,7 @@ export const HomeScreen: React.FC = () => {
       />
 
       <View style={styles.searchWrapper}>
+        <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
           placeholder={`Tìm món (debounce) — ${STUDENT.mssv}`}
@@ -69,6 +90,38 @@ export const HomeScreen: React.FC = () => {
           onChangeText={setSearchText}
           autoCapitalize="none"
         />
+        {searchText.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearSearchBtn}>
+            <Text style={styles.clearSearchText}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.categoryScroll}>
+        {categories.map(cat => {
+          const isSelected = selectedCategory === cat.key;
+          return (
+            <TouchableOpacity
+              key={cat.key}
+              style={[
+                styles.categoryChip,
+                isSelected && styles.categoryChipActive,
+              ]}
+              onPress={() => setSelectedCategory(cat.key)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.categoryIcon}>{cat.icon}</Text>
+              <Text
+                style={[
+                  styles.categoryText,
+                  isSelected && styles.categoryTextActive,
+                ]}
+              >
+                {cat.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
@@ -158,29 +211,90 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     letterSpacing: 1,
   },
+  subSubtitle: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  roomBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
   roomLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.secondary,
   },
   bannerImage: {
     width: '100%',
-    height: 100,
-    borderRadius: 10,
+    height: 110,
+    borderRadius: 12,
     marginBottom: 12,
   },
   searchWrapper: {
-    marginBottom: 12,
-  },
-  searchInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
     paddingVertical: 10,
     fontSize: 14,
     color: COLORS.text,
+  },
+  clearSearchBtn: {
+    padding: 4,
+  },
+  clearSearchText: {
+    color: COLORS.textLight,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  categoryScroll: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  categoryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  categoryTextActive: {
+    color: '#FFFFFF',
   },
   centerContainer: {
     flex: 1,

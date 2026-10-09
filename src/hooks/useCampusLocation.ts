@@ -108,6 +108,35 @@ export function useCampusLocation() {
     }
   }, []);
 
+  const resetLocation = useCallback(() => {
+    setStatus('denied');
+    setDistanceKm(null);
+    setShipFee(null);
+    setUserCoords(null);
+  }, []);
+
+  const setMockStatus = useCallback((targetStatus: PermissionStatus) => {
+    setStatus(targetStatus);
+    if (targetStatus === 'granted') {
+      const mockUserLat = 10.8275;
+      const mockUserLon = 106.6912;
+      const km = calculateHaversineDistance(
+        mockUserLat,
+        mockUserLon,
+        KTX_COORDS.latitude,
+        KTX_COORDS.longitude
+      );
+      const fee = calculateShippingFee(km);
+      setUserCoords({ latitude: mockUserLat, longitude: mockUserLon });
+      setDistanceKm(km);
+      setShipFee(fee);
+    } else {
+      setDistanceKm(null);
+      setShipFee(null);
+      setUserCoords(null);
+    }
+  }, []);
+
   const openSettings = useCallback(() => {
     Linking.openSettings().catch(() => {
       Alert.alert('Lỗi', 'Không thể mở Cài đặt thiết bị');
@@ -123,5 +152,7 @@ export function useCampusLocation() {
     loading,
     requestPermissionAndGetLocation,
     openSettings,
+    resetLocation,
+    setMockStatus,
   };
 }

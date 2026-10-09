@@ -14,7 +14,7 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { Watermark } from '@components/Watermark';
 import { useProductsQuery } from '@services/productApi';
 import { useCartStore } from '@stores/cartStore';
-import { STUDENT, VARIANT } from '@constants/student';
+import { STUDENT, VARIANT, triggerAddToCartHaptic } from '@constants/student';
 import { COLORS } from '@constants/theme';
 import { ShopStackParamList } from '@navigation/ShopStack';
 
@@ -32,13 +32,7 @@ export const DetailScreen: React.FC = () => {
   const handleAddToCart = () => {
     if (!product) return;
 
-    // Rung Haptic theo VARIANT.hapticOnAdd
-    if (VARIANT.hapticOnAdd === 'impact') {
-      Vibration.vibrate(60);
-    } else {
-      Vibration.vibrate(25);
-    }
-
+    triggerAddToCartHaptic();
     addItem(product);
 
     Alert.alert(

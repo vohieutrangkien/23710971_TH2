@@ -7,6 +7,8 @@ import { useCartStore } from '@stores/cartStore';
 import { VARIANT } from '@constants/student';
 import { COLORS } from '@constants/theme';
 
+import { Text } from 'react-native';
+
 export type MainTabsParamList = {
   ShopTab: undefined;
   CartTab: undefined;
@@ -26,6 +28,11 @@ export const MainTabs: React.FC = () => {
       options={{
         title: 'Cửa hàng',
         headerShown: false,
+        tabBarIcon: ({ color, size, focused }) => (
+          <Text style={{ fontSize: focused ? 22 : 20, color, opacity: focused ? 1 : 0.7 }}>
+            🏪
+          </Text>
+        ),
       }}
     />
   );
@@ -36,8 +43,13 @@ export const MainTabs: React.FC = () => {
       name="CartTab"
       component={CartScreen}
       options={{
-        title: 'Giỏ',
+        title: 'Giỏ hàng',
         headerShown: false,
+        tabBarIcon: ({ color, size, focused }) => (
+          <Text style={{ fontSize: focused ? 22 : 20, color, opacity: focused ? 1 : 0.7 }}>
+            🛒
+          </Text>
+        ),
         tabBarBadge: totalQty > 0 ? totalQty : undefined,
         tabBarBadgeStyle: {
           backgroundColor: COLORS.secondary,
@@ -57,6 +69,11 @@ export const MainTabs: React.FC = () => {
       options={{
         title: 'Tôi',
         headerShown: false,
+        tabBarIcon: ({ color, size, focused }) => (
+          <Text style={{ fontSize: focused ? 22 : 20, color, opacity: focused ? 1 : 0.7 }}>
+            👤
+          </Text>
+        ),
       }}
     />
   );

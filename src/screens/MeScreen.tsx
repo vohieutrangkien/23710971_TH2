@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Switch,
 } from 'react-native';
 import { Watermark } from '@components/Watermark';
 import { useAuthStore } from '@stores/authStore';
@@ -25,6 +26,7 @@ export const MeScreen: React.FC = () => {
     loading,
     requestPermissionAndGetLocation,
     openSettings,
+    resetLocation,
   } = useCampusLocation();
 
   const stamp = examStamp();
@@ -33,12 +35,23 @@ export const MeScreen: React.FC = () => {
   useEffect(() => {
     if (shipFee !== null && distanceKm !== null) {
       setShippingFee(shipFee, distanceKm);
+    } else {
+      setShippingFee(null, null);
     }
   }, [shipFee, distanceKm, setShippingFee]);
 
   const isWatermarkTop = VARIANT.watermarkAtTop;
+  const isGpsActive = status === 'granted';
 
-  const renderLocationContent = () => {
+  const handleToggleGps = (value: boolean) => {
+    if (value) {
+      requestPermissionAndGetLocation();
+    } else {
+      resetLocation();
+    }
+  };
+
+  const renderLocationStatus = () => {
     if (loading) {
       return (
         <View style={styles.stateContainer}>
@@ -51,12 +64,14 @@ export const MeScreen: React.FC = () => {
     if (status === 'granted' && distanceKm !== null && shipFee !== null) {
       return (
         <View style={styles.resultBox}>
-          <Text style={styles.statusGranted}>Quyền: granted</Text>
+          <View style={styles.statusBadgeGranted}>
+            <Text style={styles.statusBadgeText}>🟢 Quyền vị trí: Đã cho phép (granted)</Text>
+          </View>
           <Text style={styles.distanceText}>
-            ≈ {distanceKm} km tới điểm KTX
+            📍 Khoảng cách: ≈ {distanceKm} km đến KTX IUH
           </Text>
           <Text style={styles.feeLabel}>
-            Phí ship ước tính (Công thức {VARIANT.shipFormula}):
+            Phí giao hàng ước tính (Công thức {VARIANT.shipFormula}):
           </Text>
           <Text style={styles.feeValue}>
             {shipFee.toLocaleString('vi-VN')} đ
@@ -65,29 +80,21 @@ export const MeScreen: React.FC = () => {
       );
     }
 
-    if (status === 'denied') {
-      return (
-        <View style={styles.stateContainer}>
-          <Text style={styles.statusDenied}>Quyền: denied (Bị từ chối)</Text>
-          <Text style={styles.guideText}>
-            Vui lòng bấm nút bên dưới để cấp quyền vị trí, giúp KTXGo tính khoảng cách giao hàng chính xác.
-          </Text>
-        </View>
-      );
-    }
-
     if (status === 'blocked') {
       return (
         <View style={styles.stateContainer}>
-          <Text style={styles.statusBlocked}>Quyền: blocked (Bị chặn vĩnh viễn)</Text>
+          <View style={styles.statusBadgeBlocked}>
+            <Text style={styles.statusBadgeBlockedText}>🔴 Quyền vị trí: Bị chặn (blocked)</Text>
+          </View>
           <Text style={styles.guideText}>
-            Bạn đã chặn quyền vị trí. Vui lòng bấm "Mở Cài đặt" để bật lại quyền.
+            Ứng dụng đã bị từ chối quyền vĩnh viễn. Vui lòng mở Cài đặt của thiết bị để bật lại quyền Vị trí.
           </Text>
           <TouchableOpacity
-            style={styles.settingsButton}
+            style={styles.openSettingsBtn}
+            activeOpacity={0.8}
             onPress={openSettings}
           >
-            <Text style={styles.settingsButtonText}>Mở Cài đặt (blocked)</Text>
+            <Text style={styles.openSettingsBtnText}>⚙️ Mở Cài đặt thiết bị (Cấp quyền)</Text>
           </TouchableOpacity>
         </View>
       );
@@ -95,9 +102,19 @@ export const MeScreen: React.FC = () => {
 
     return (
       <View style={styles.stateContainer}>
+        <View style={styles.statusBadgeDenied}>
+          <Text style={styles.statusBadgeDeniedText}>🟡 Quyền vị trí: Chưa cấp (denied)</Text>
+        </View>
         <Text style={styles.guideText}>
-          Chưa cấp quyền vị trí. Bấm nút dưới để ước tính phí giao hàng KTX.
+          Bật công tắc GPS ở trên hoặc bấm "Cấp quyền & Lấy vị trí" để tự động tính phí ship chính xác.
         </Text>
+        <TouchableOpacity
+          style={styles.requestBtn}
+          activeOpacity={0.8}
+          onPress={requestPermissionAndGetLocation}
+        >
+          <Text style={styles.requestBtnText}>📍 Cấp quyền & Lấy vị trí</Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -107,15 +124,18 @@ export const MeScreen: React.FC = () => {
       {isWatermarkTop && <Watermark />}
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>TÔI : LOCATION</Text>
+        <Text style={styles.headerTitle}>TÔI & CÀI ĐẶT</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Card thông tin sinh viên */}
         <View style={styles.profileCard}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>🎓</Text>
+          </View>
           <Text style={styles.studentName}>{STUDENT.hoTen}</Text>
           <Text style={styles.studentDetails}>
-            {STUDENT.mssv} · #{stamp}
+            MSSV: {STUDENT.mssv} · Stamp: #{stamp}
           </Text>
           {token && (
             <Text style={styles.tokenText}>
@@ -124,34 +144,57 @@ export const MeScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Card định vị & phí ship */}
-        <View style={styles.locationCard}>
-          <Text style={styles.sectionTitle}>Định vị & Phí Ship</Text>
-          {renderLocationContent()}
+        {/* Card Cài đặt định vị GPS */}
+        <View style={styles.settingCard}>
+          <Text style={styles.cardHeaderTitle}>📍 Cài đặt Vị trí & Định vị GPS</Text>
 
-          {status !== 'blocked' && (
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={styles.switchTitle}>Cho phép bật GPS</Text>
+              <Text style={styles.switchSubtitle}>
+                {isGpsActive
+                  ? 'Đang bật GPS tính phí ship theo vị trí thực'
+                  : 'Đang tắt GPS (dùng mức phí ship mặc định)'}
+              </Text>
+            </View>
+            <Switch
+              value={isGpsActive}
+              onValueChange={handleToggleGps}
+              trackColor={{ false: '#CBD5E1', true: COLORS.primary }}
+              thumbColor={isGpsActive ? '#FFFFFF' : '#F1F5F9'}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
+          {renderLocationStatus()}
+
+          {status === 'granted' && (
             <TouchableOpacity
-              style={styles.locationButton}
+              style={styles.refreshLocationBtn}
               activeOpacity={0.8}
               onPress={requestPermissionAndGetLocation}
             >
-              <Text style={styles.locationButtonText}>
-                Lấy vị trí ước tính ship
-              </Text>
+              <Text style={styles.refreshLocationBtnText}>🔄 Cập nhật lại vị trí GPS</Text>
             </TouchableOpacity>
           )}
+        </View>
 
-          {status === 'blocked' && (
-            <TouchableOpacity
-              style={styles.settingsButtonOutline}
-              activeOpacity={0.8}
-              onPress={openSettings}
-            >
-              <Text style={styles.settingsButtonOutlineText}>
-                Mở Cài đặt (blocked)
-              </Text>
-            </TouchableOpacity>
-          )}
+        {/* Card Cài đặt ứng dụng hệ thống */}
+        <View style={styles.settingCard}>
+          <Text style={styles.cardHeaderTitle}>⚙️ Cài đặt Ứng dụng</Text>
+
+          <TouchableOpacity
+            style={styles.settingRowItem}
+            activeOpacity={0.7}
+            onPress={openSettings}
+          >
+            <View>
+              <Text style={styles.settingItemTitle}>Quyền ứng dụng trên thiết bị</Text>
+              <Text style={styles.settingItemSubtitle}>Mở Cài đặt hệ thống (Vị trí, Rung, Camera)</Text>
+            </View>
+            <Text style={styles.arrowText}>›</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Nút Đăng xuất */}
@@ -187,6 +230,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 30,
   },
   profileCard: {
     backgroundColor: COLORS.surface,
@@ -202,6 +246,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  avatarCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  avatarText: {
+    fontSize: 30,
+  },
   studentName: {
     fontSize: 20,
     fontWeight: '800',
@@ -212,32 +270,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.textLight,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   tokenText: {
     fontSize: 12,
     color: '#94A3B8',
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  locationCard: {
+  settingCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 16,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 16,
+  cardHeaderTitle: {
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  switchTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  switchSubtitle: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 14,
   },
   stateContainer: {
-    marginVertical: 8,
+    marginVertical: 4,
   },
   stateText: {
     fontSize: 13,
@@ -245,23 +324,41 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'center',
   },
-  statusGranted: {
-    fontSize: 14,
+  statusBadgeGranted: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  statusBadgeText: {
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.success,
-    marginBottom: 4,
   },
-  statusDenied: {
-    fontSize: 14,
+  statusBadgeDenied: {
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  statusBadgeDeniedText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: COLORS.secondary,
-    marginBottom: 4,
+    color: '#D97706',
   },
-  statusBlocked: {
-    fontSize: 14,
+  statusBadgeBlocked: {
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  statusBadgeBlockedText: {
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.error,
-    marginBottom: 4,
   },
   guideText: {
     fontSize: 13,
@@ -273,7 +370,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
     padding: 14,
-    marginBottom: 14,
+    marginBottom: 10,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.success,
   },
@@ -293,42 +390,63 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     marginTop: 2,
   },
-  locationButton: {
+  requestBtn: {
     backgroundColor: COLORS.primary,
-    paddingVertical: 13,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  locationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  settingsButton: {
-    backgroundColor: '#EF4444',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  settingsButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  settingsButtonOutline: {
-    borderWidth: 1,
-    borderColor: COLORS.primary,
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
-  settingsButtonOutlineText: {
+  requestBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  openSettingsBtn: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  openSettingsBtnText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  refreshLocationBtn: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  refreshLocationBtnText: {
     color: COLORS.primary,
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  settingRowItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  settingItemTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  settingItemSubtitle: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
+  arrowText: {
+    fontSize: 20,
+    color: COLORS.textLight,
+    fontWeight: 'bold',
   },
   logoutButton: {
     backgroundColor: '#DC2626',
